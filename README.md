@@ -17,8 +17,8 @@ Compile yourself using `cargo build --release`
 ## Usage
 
 - `--city STRING` - pass a specific city location to aladhan.com
-- `--country` - pass a specific city location to aladhan.com
-- `--method` - pass a calculation method number. see [reference](https://aladhan.com/calculation-methods)
+- `--country STRING` - pass a specific city location to aladhan.com
+- `--method STRING` - pass a calculation method number. see [reference](https://aladhan.com/calculation-methods)
 - `--ampm` - display time in AM/PM format in development
 
 e.g. `prayerbar --city Brussels --country Belgium --method 15`
@@ -35,10 +35,11 @@ config.jsonc
     "exec": "prayerbar",
     "return-type": "json"
 },
-
+```
 style.css :
 ```css
 #custom-prayerbar {
   padding: 0 1.5em 0 0.3em;
   border-radius: 0 10 10 0;
 }
+```
