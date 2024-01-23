@@ -47,12 +47,14 @@ fn main() {
 
     let mut iterations = 0;
     let treshold = 20;
+    let mut tooltip = format!("Prayer times {}\n", city);
+    let mut text = String::new();
 
     let is_cache_file_recent = if let Ok(metadata) = metadata(&cachefile) {
-        let ten_minutes_ago = SystemTime::now() - Duration::from_secs(600);
+        let five_hours_ago = SystemTime::now() - Duration::from_secs(10800);
         metadata
             .modified()
-            .map_or(false, |mod_time| mod_time > ten_minutes_ago)
+            .map_or(false, |mod_time| mod_time > five_hours_ago)
     } else {
         false
     };
@@ -85,11 +87,17 @@ fn main() {
             .expect(format!("Unable to write cache file at {}", cachefile).as_str());
     }
 
-    let mut tooltip = format!("Prayer times {}\n", city);
+    let hijri_date = times["data"]["date"]["hijri"]["date"].as_str().unwrap();
+    let hijri_month_name = times["data"]["date"]["hijri"]["month"]["en"]
+        .as_str()
+        .unwrap();
+    let hijri_weekday = times["data"]["date"]["hijri"]["weekday"]["en"]
+        .as_str()
+        .unwrap();
+    tooltip += format!("{} {} {}\n", hijri_date, hijri_month_name, hijri_weekday).as_str();
     let prayer_times_map = times["data"]["timings"].as_object().unwrap();
     for (prayer_name, prayer_time) in prayer_times_map.iter() {
         if prayer_names.contains(&prayer_name.as_str()) {
-            tooltip += &format!("{} at {}\n", prayer_name, prayer_time);
             let prayer_time_value_str = prayer_time.as_str().unwrap();
             let date_time_str = format!(
                 "{} {} {}",
@@ -102,26 +110,41 @@ fn main() {
         }
     }
     prayer_data.push(("Current_time", dt.fixed_offset()));
-    tooltip += "\n";
 
-    let text = get_next_prayer(prayer_data);
+    prayer_data = sort_prayer_times(prayer_data);
+    format_prayerbar(&prayer_data, &mut tooltip, &mut text);
     data.insert("text", text);
     data.insert("tooltip", tooltip);
     let json_data = json!(data);
     println!("{}", json_data);
 }
 
-fn get_next_prayer(mut times_vec: Vec<(&str, DateTime<FixedOffset>)>) -> String {
-    let mut next_prayer = times_vec[0];
+fn sort_prayer_times(
+    mut times_vec: Vec<(&str, DateTime<FixedOffset>)>,
+) -> Vec<(&str, DateTime<FixedOffset>)> {
     times_vec.sort_by(|a, b| a.1.cmp(&b.1));
     let temp = times_vec[0];
+    //if Midnight > 00:00
     times_vec.push(temp);
     times_vec.remove(0);
-    for (index, (prayer_name, _)) in times_vec.iter().enumerate() {
+    times_vec
+}
+
+fn format_prayerbar(
+    times_vec: &Vec<(&str, DateTime<FixedOffset>)>,
+    tooltip: &mut String,
+    bar_text: &mut String,
+) {
+    for (index, (prayer_name, prayer_time)) in times_vec.iter().enumerate() {
         let name = *prayer_name;
         if name.eq("Current_time") && index < times_vec.len() {
-            next_prayer = times_vec[index + 1]
+            *bar_text = format!(
+                "{} {}",
+                times_vec[index + 1].0,
+                times_vec[index + 1].1.format("%H:%M")
+            );
+        } else {
+            *tooltip += format!("{} at {}\n", name, prayer_time.format("%H:%M")).as_str();
         }
     }
-    format!("{} {}", next_prayer.0, next_prayer.1.format("%H:%M"))
 }
