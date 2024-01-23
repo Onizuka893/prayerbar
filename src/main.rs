@@ -29,6 +29,14 @@ fn main() {
     let prayer_names: [&str; 7] = [
         "Fajr", "Sunrise", "Dhuhr", "Asr", "Maghrib", "Isha", "Midnight",
     ];
+    let mut prayer_icons: HashMap<&str, &str> = HashMap::new();
+    prayer_icons.insert("Fajr", "🌄 ");
+    prayer_icons.insert("Sunrise", "🌅 ");
+    prayer_icons.insert("Dhuhr", "🏙️ ");
+    prayer_icons.insert("Asr", "🏙️ ");
+    prayer_icons.insert("Maghrib", "🌇 ");
+    prayer_icons.insert("Isha", "🌃 ");
+    prayer_icons.insert("Midnight", "🌃 ");
 
     let mut data = HashMap::new();
     let mut prayer_data: Vec<(&str, DateTime<FixedOffset>)> = Vec::new();
@@ -47,7 +55,7 @@ fn main() {
 
     let mut iterations = 0;
     let treshold = 20;
-    let mut tooltip = format!("Prayer times {}\n", city);
+    let mut tooltip = format!("<b>Prayer times in {}</b>\n\n", city);
     let mut text = String::new();
 
     let is_cache_file_recent = if let Ok(metadata) = metadata(&cachefile) {
@@ -94,7 +102,11 @@ fn main() {
     let hijri_weekday = times["data"]["date"]["hijri"]["weekday"]["en"]
         .as_str()
         .unwrap();
-    tooltip += format!("{} {} {}\n", hijri_date, hijri_month_name, hijri_weekday).as_str();
+    tooltip += format!(
+        "🗓️ {} {} {}\n\n",
+        hijri_date, hijri_month_name, hijri_weekday
+    )
+    .as_str();
     let prayer_times_map = times["data"]["timings"].as_object().unwrap();
     for (prayer_name, prayer_time) in prayer_times_map.iter() {
         if prayer_names.contains(&prayer_name.as_str()) {
@@ -112,7 +124,7 @@ fn main() {
     prayer_data.push(("Current_time", dt.fixed_offset()));
 
     prayer_data = sort_prayer_times(prayer_data);
-    format_prayerbar(&prayer_data, &mut tooltip, &mut text);
+    format_prayerbar(&prayer_data, &mut tooltip, &mut text, &prayer_icons);
     data.insert("text", text);
     data.insert("tooltip", tooltip);
     let json_data = json!(data);
@@ -134,17 +146,24 @@ fn format_prayerbar(
     times_vec: &Vec<(&str, DateTime<FixedOffset>)>,
     tooltip: &mut String,
     bar_text: &mut String,
+    icons: &HashMap<&str, &str>,
 ) {
     for (index, (prayer_name, prayer_time)) in times_vec.iter().enumerate() {
         let name = *prayer_name;
         if name.eq("Current_time") && index < times_vec.len() {
             *bar_text = format!(
-                "{} {}",
+                "🕋 {} {}",
                 times_vec[index + 1].0,
                 times_vec[index + 1].1.format("%H:%M")
             );
         } else {
-            *tooltip += format!("{} at {}\n", name, prayer_time.format("%H:%M")).as_str();
+            *tooltip += format!(
+                "{}{} at {}\n",
+                icons[name],
+                name,
+                prayer_time.format("%H:%M")
+            )
+            .as_str();
         }
     }
 }
