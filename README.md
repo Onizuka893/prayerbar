@@ -21,7 +21,7 @@ Compile yourself using `cargo build --release`
 - `--method STRING` - pass a calculation method number. see [reference](https://aladhan.com/calculation-methods)
 ---------------------------------------------------------------------
 - `--ampm` - display time in AM/PM format ! in development
-- --ar BOOLEAN - displat date in Arabic format ! in development
+- `--ar` - display date in Arabic format ! in development
 
 e.g. `prayerbar --city Brussels --country Belgium --method 15`
 
