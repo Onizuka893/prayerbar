@@ -6,7 +6,7 @@ prayerbar
 a simple prayer time indicator for <a href="https://github.com/Alexays/Waybar/">Waybar</a> using <a href="https://aladhan.com/">aladhan.com</a>.
 </p>
 <p align="center">
-<img src="./prayertimes.png" height="400">
+<img src="./prayerbar.png" height="400">
 </p>
 <hr />
 
@@ -19,7 +19,9 @@ Compile yourself using `cargo build --release`
 - `--city STRING` - pass a specific city location to aladhan.com
 - `--country STRING` - pass a specific city location to aladhan.com
 - `--method STRING` - pass a calculation method number. see [reference](https://aladhan.com/calculation-methods)
+---------------------------------------------------------------------
 - `--ampm` - display time in AM/PM format ! in development
+- --ar BOOLEAN - displat date in Arabic format ! in development
 
 e.g. `prayerbar --city Brussels --country Belgium --method 15`
 
@@ -32,7 +34,7 @@ config.jsonc
 "custom/prayerbar": {
     "format": "{}",
     "tooltip": true,
-    "interval": 1800,
+    "interval": 60,
     "exec": "prayerbar",
     "return-type": "json"
 },
