@@ -21,6 +21,8 @@ struct Args {
         help = "pass a calculation method See https://aladhan.com/calculation-methods"
     )]
     method: Option<String>,
+    #[arg(long, help = "display calendar in Arabic format")]
+    ar: bool,
 }
 
 fn main() {
@@ -44,6 +46,13 @@ fn main() {
     let city = args.city.unwrap_or(String::new());
     let country = args.country.unwrap_or(String::new());
     let method = args.method.unwrap_or(String::new());
+    let language = {
+        if args.ar {
+            "ar"
+        } else {
+            "en"
+        }
+    };
     let prayer_url = format!(
         "http://api.aladhan.com/v1/timingsByCity/{}?city={}&country={}&method={}",
         dt.format("%d-%m-%Y"),
@@ -96,10 +105,10 @@ fn main() {
     }
 
     let hijri_date = times["data"]["date"]["hijri"]["date"].as_str().unwrap();
-    let hijri_month_name = times["data"]["date"]["hijri"]["month"]["en"]
+    let hijri_month_name = times["data"]["date"]["hijri"]["month"][language]
         .as_str()
         .unwrap();
-    let hijri_weekday = times["data"]["date"]["hijri"]["weekday"]["en"]
+    let hijri_weekday = times["data"]["date"]["hijri"]["weekday"][language]
         .as_str()
         .unwrap();
     tooltip += format!(
