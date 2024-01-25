@@ -19,7 +19,7 @@ Compile yourself using `cargo build --release`
 - `--city STRING` - pass a specific city location to aladhan.com
 - `--country STRING` - pass a specific city location to aladhan.com
 - `--method STRING` - pass a calculation method number. see [reference](https://aladhan.com/calculation-methods)
-- `--ar` - display date in Arabic format ! in development
+- `--ar` - display date in Arabic format.
 ---------------------------------------------------------------------
 - `--ampm` - display time in AM/PM format ! in development
 
