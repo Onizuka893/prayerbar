@@ -25,47 +25,27 @@ struct Args {
     ar: bool,
 }
 
+const DEFAULT_RESULT: &[(&str, &str)] = &[("text", "N/A"), ("tooltip", "N/A")];
+
 fn main() {
     let args = Args::parse();
     let dt = Local::now();
-    let prayer_names: [&str; 7] = [
-        "Fajr", "Sunrise", "Dhuhr", "Asr", "Maghrib", "Isha", "Midnight",
-    ];
-    let mut prayer_icons: HashMap<&str, &str> = HashMap::new();
-    prayer_icons.insert("Fajr", "🌄 ");
-    prayer_icons.insert("Sunrise", "🌅 ");
-    prayer_icons.insert("Dhuhr", "🏙️ ");
-    prayer_icons.insert("Asr", "🏙️ ");
-    prayer_icons.insert("Maghrib", "🌇 ");
-    prayer_icons.insert("Isha", "🌃 ");
-    prayer_icons.insert("Midnight", "🌃 ");
 
-    let mut data = HashMap::new();
-    let mut prayer_data: Vec<(&str, DateTime<FixedOffset>)> = Vec::new();
-
-    let city = args.city.unwrap_or(String::new());
-    let country = args.country.unwrap_or(String::new());
-    let method = args.method.unwrap_or(String::new());
-    let language = {
-        if args.ar {
-            "ar"
-        } else {
-            "en"
-        }
-    };
     let prayer_url = format!(
         "http://api.aladhan.com/v1/timingsByCity/{}?city={}&country={}&method={}",
         dt.format("%d-%m-%Y"),
-        city,
-        country,
-        method
+        args.city.as_ref().unwrap_or(&String::default()),
+        args.country.as_ref().unwrap_or(&String::default()),
+        args.method.as_ref().unwrap_or(&String::default())
     );
-    let cachefile = format!("/tmp/prayerbar-{}.json", city);
+
+    let cachefile = format!(
+        "/tmp/prayerbar-{}.json",
+        args.city.as_ref().unwrap_or(&String::default())
+    );
 
     let mut iterations = 0;
     let treshold = 20;
-    let mut tooltip = format!("<b>Prayer times in {}</b>\n\n", city);
-    let mut text = String::new();
 
     let is_cache_file_recent = if let Ok(metadata) = metadata(&cachefile) {
         let five_hours_ago = SystemTime::now() - Duration::from_secs(10800);
@@ -89,7 +69,8 @@ fn main() {
                     thread::sleep(time::Duration::from_millis(500 * iterations));
 
                     if iterations == treshold {
-                        panic!("No response from endpoint!");
+                        eprintln!("Error connecting to alathan.com");
+                        println!("{}", json!(DEFAULT_RESULT));
                     }
                 }
             }
@@ -104,6 +85,42 @@ fn main() {
             .expect(format!("Unable to write cache file at {}", cachefile).as_str());
     }
 
+    let data = parse_prayer_times(times, &args);
+
+    let json_data = json!(data);
+    println!("{}", json_data);
+}
+
+fn parse_prayer_times<'a>(times: Value, args: &Args) -> HashMap<&'a str, String> {
+    let dt = Local::now();
+
+    let prayer_icons = HashMap::from([
+        ("Fajr", "🌄 "),
+        ("Sunrise", "🌅 "),
+        ("Dhuhr", "🏙️ "),
+        ("Asr", "🏙️ "),
+        ("Maghrib", "🌇 "),
+        ("Isha", "🌃 "),
+        ("Midnight", "🌃 "),
+    ]);
+
+    let mut data = HashMap::new();
+
+    let mut prayer_data: Vec<(&str, DateTime<FixedOffset>)> = Vec::new();
+    let language = {
+        if args.ar {
+            "ar"
+        } else {
+            "en"
+        }
+    };
+
+    let mut tooltip = format!(
+        "<b>Prayer times in {}</b>\n\n",
+        args.city.as_ref().unwrap_or(&String::default())
+    );
+    let mut text = String::new();
+
     let hijri_date = times["data"]["date"]["hijri"]["date"].as_str().unwrap();
     let hijri_month_name = times["data"]["date"]["hijri"]["month"][language]
         .as_str()
@@ -111,14 +128,16 @@ fn main() {
     let hijri_weekday = times["data"]["date"]["hijri"]["weekday"][language]
         .as_str()
         .unwrap();
+
     tooltip += format!(
         "🗓️ {} {} {}\n\n",
         hijri_date, hijri_month_name, hijri_weekday
     )
     .as_str();
+
     let prayer_times_map = times["data"]["timings"].as_object().unwrap();
     for (prayer_name, prayer_time) in prayer_times_map.iter() {
-        if prayer_names.contains(&prayer_name.as_str()) {
+        if prayer_icons.contains_key(&prayer_name.as_str()) {
             let prayer_time_value_str = prayer_time.as_str().unwrap();
             let date_time_str = format!(
                 "{} {} {}",
@@ -132,23 +151,21 @@ fn main() {
     }
     prayer_data.push(("Current_time", dt.fixed_offset()));
 
-    prayer_data = sort_prayer_times(prayer_data);
+    sort_prayer_times(&mut prayer_data);
     format_prayerbar(&prayer_data, &mut tooltip, &mut text, &prayer_icons);
+
     data.insert("text", text);
     data.insert("tooltip", tooltip);
-    let json_data = json!(data);
-    println!("{}", json_data);
+    data
 }
 
-fn sort_prayer_times(
-    mut times_vec: Vec<(&str, DateTime<FixedOffset>)>,
-) -> Vec<(&str, DateTime<FixedOffset>)> {
+fn sort_prayer_times(times_vec: &mut Vec<(&str, DateTime<FixedOffset>)>) {
     times_vec.sort_by(|a, b| a.1.cmp(&b.1));
     let temp = times_vec[0];
     //if Midnight > 00:00
+    //else error???
     times_vec.push(temp);
     times_vec.remove(0);
-    times_vec
 }
 
 fn format_prayerbar(
