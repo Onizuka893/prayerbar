@@ -79,10 +79,10 @@ fn main() {
 
     if !is_cache_file_recent {
         let mut file = File::create(&cachefile)
-            .expect(format!("Unable to create cache file at {}", cachefile).as_str());
+            .unwrap_or_else(|_| panic!("Unable to create cache file at {}", cachefile));
 
         file.write_all(serde_json::to_string_pretty(&times).unwrap().as_bytes())
-            .expect(format!("Unable to write cache file at {}", cachefile).as_str());
+            .unwrap_or_else(|_| panic!("Unable to write cache file at {}", cachefile));
     }
 
     let data = parse_prayer_times(times, &args);
@@ -162,6 +162,7 @@ fn parse_prayer_times<'a>(times: Value, args: &Args) -> HashMap<&'a str, String>
 fn sort_prayer_times(times_vec: &mut Vec<(&str, DateTime<FixedOffset>)>) {
     times_vec.sort_by(|a, b| a.1.cmp(&b.1));
     let temp = times_vec[0];
+
     //if Midnight > 00:00
     //else error???
     times_vec.push(temp);
@@ -176,7 +177,7 @@ fn format_prayerbar(
 ) {
     for (index, (prayer_name, prayer_time)) in times_vec.iter().enumerate() {
         let name = *prayer_name;
-        if name.eq("Current_time") && index < times_vec.len() {
+        if name.eq("Current_time") && index <= times_vec.len() {
             *bar_text = format!(
                 "🕋 {} {}",
                 times_vec[index + 1].0,
