@@ -58,12 +58,12 @@ fn main() {
 
     let client = Client::new();
     let times = if is_cache_file_recent {
-        let json_str = read_to_string(&cachefile).unwrap();
-        serde_json::from_str::<serde_json::Value>(&json_str).unwrap()
+        let json_str = read_to_string(&cachefile).expect("Unable to read cache file");
+        serde_json::from_str::<serde_json::Value>(&json_str).expect("Unable to parse cache file")
     } else {
         loop {
             match client.get(&prayer_url).send() {
-                Ok(response) => break response.json::<Value>().unwrap(),
+                Ok(response) => break response.json::<Value>().expect("Unable to parse response"),
                 Err(_) => {
                     iterations += 1;
                     thread::sleep(time::Duration::from_millis(500 * iterations));
@@ -121,13 +121,23 @@ fn parse_prayer_times<'a>(times: Value, args: &Args) -> HashMap<&'a str, String>
     );
     let mut text = String::new();
 
-    let hijri_date = times["data"]["date"]["hijri"]["date"].as_str().unwrap();
+    let hijri_date = times["data"]["date"]["hijri"]["date"]
+        .as_str()
+        .unwrap_or_else(|| {
+            eprintln!("API returned invalid hijri date might be due to invalid city or country");
+            "N/A"
+        });
+    if hijri_date.eq("N/A") {
+        data.insert("text", "N/A".to_string());
+        data.insert("tooltip", "N/A".to_string());
+        return data;
+    }
     let hijri_month_name = times["data"]["date"]["hijri"]["month"][language]
         .as_str()
-        .unwrap();
+        .expect("hijri month name not available");
     let hijri_weekday = times["data"]["date"]["hijri"]["weekday"][language]
         .as_str()
-        .unwrap();
+        .expect("hijri weekday not available");
 
     tooltip += format!(
         "🗓️ {} {} {}\n\n",
@@ -135,17 +145,20 @@ fn parse_prayer_times<'a>(times: Value, args: &Args) -> HashMap<&'a str, String>
     )
     .as_str();
 
-    let prayer_times_map = times["data"]["timings"].as_object().unwrap();
+    let prayer_times_map = times["data"]["timings"]
+        .as_object()
+        .expect("prayer timings not available");
     for (prayer_name, prayer_time) in prayer_times_map.iter() {
         if prayer_icons.contains_key(&prayer_name.as_str()) {
-            let prayer_time_value_str = prayer_time.as_str().unwrap();
+            let prayer_time_value_str = prayer_time.as_str().expect("prayer time not available");
             let date_time_str = format!(
                 "{} {} {}",
                 dt.format("%Y-%m-%d"),
                 prayer_time_value_str,
                 dt.format("%z")
             );
-            let date_time = DateTime::parse_from_str(&date_time_str, "%Y-%m-%d %H:%M %z").unwrap();
+            let date_time = DateTime::parse_from_str(&date_time_str, "%Y-%m-%d %H:%M %z")
+                .expect("unable to parse date time");
             prayer_data.push((prayer_name.as_str(), date_time));
         }
     }
