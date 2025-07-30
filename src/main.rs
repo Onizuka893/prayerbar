@@ -190,13 +190,7 @@ fn format_prayerbar(
 ) {
     for (index, (prayer_name, prayer_time)) in times_vec.iter().enumerate() {
         let name = *prayer_name;
-        if name.eq("Current_time") && index <= times_vec.len() {
-            *bar_text = format!(
-                "🕋 {} {}",
-                times_vec[index + 1].0,
-                times_vec[index + 1].1.format("%H:%M")
-            );
-        } else {
+        if name != "Current_time" {
             *tooltip += format!(
                 "{}{} at {}\n",
                 icons[name],
@@ -204,6 +198,14 @@ fn format_prayerbar(
                 prayer_time.format("%H:%M")
             )
             .as_str();
+        } else if (index + 1) < times_vec.len() {
+            *bar_text = format!(
+                "🕋 {} {}",
+                times_vec[index + 1].0,
+                times_vec[index + 1].1.format("%H:%M")
+            );
+        } else {
+            *bar_text = format!("🕋 {} {}", times_vec[0].0, times_vec[0].1.format("%H:%M"));
         }
     }
 }
