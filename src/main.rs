@@ -23,6 +23,8 @@ struct Args {
     method: Option<String>,
     #[arg(long, help = "display calendar in Arabic format")]
     ar: bool,
+    #[arg(long, help = "display time in AM/PM format")]
+    ampm: bool,
 }
 
 const DEFAULT_RESULT: &[(&str, &str)] = &[("text", "N/A"), ("tooltip", "N/A")];
@@ -165,7 +167,13 @@ fn parse_prayer_times<'a>(times: Value, args: &Args) -> HashMap<&'a str, String>
     prayer_data.push(("Current_time", dt.fixed_offset()));
 
     sort_prayer_times(&mut prayer_data);
-    format_prayerbar(&prayer_data, &mut tooltip, &mut text, &prayer_icons);
+    format_prayerbar(
+        &prayer_data,
+        &mut tooltip,
+        &mut text,
+        &prayer_icons,
+        args.ampm,
+    );
 
     data.insert("text", text);
     data.insert("tooltip", tooltip);
@@ -187,23 +195,32 @@ fn format_prayerbar(
     tooltip: &mut String,
     bar_text: &mut String,
     icons: &HashMap<&str, &str>,
+    is_ampm: bool,
 ) {
+    let time_format = if is_ampm { "%I:%M %p" } else { "%H:%M" };
+
     for (index, (prayer_name, prayer_time)) in times_vec.iter().enumerate() {
         let name = *prayer_name;
-        if name.eq("Current_time") && index <= times_vec.len() {
-            *bar_text = format!(
-                "🕋 {} {}",
-                times_vec[index + 1].0,
-                times_vec[index + 1].1.format("%H:%M")
-            );
-        } else {
+        if name != "Current_time" {
             *tooltip += format!(
                 "{}{} at {}\n",
                 icons[name],
                 name,
-                prayer_time.format("%H:%M")
+                prayer_time.format(time_format)
             )
             .as_str();
+        } else if (index + 1) < times_vec.len() {
+            *bar_text = format!(
+                "🕋 {} {}",
+                times_vec[index + 1].0,
+                times_vec[index + 1].1.format(time_format)
+            );
+        } else {
+            *bar_text = format!(
+                "🕋 {} {}",
+                times_vec[0].0,
+                times_vec[0].1.format(time_format)
+            );
         }
     }
 }

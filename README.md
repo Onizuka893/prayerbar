@@ -20,8 +20,7 @@ Compile yourself using `cargo build --release`
 - `--country STRING` - pass a specific city location to aladhan.com
 - `--method STRING` - pass a calculation method number. see [reference](https://aladhan.com/calculation-methods)
 - `--ar` - display date in Arabic format.
----------------------------------------------------------------------
-- `--ampm` - display time in AM/PM format ! in development
+- `--ampm` - display time in AM/PM format
 
 e.g. `prayerbar --city Brussels --country Belgium --method 15`
 
